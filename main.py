@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 
 
+
 ua = UserAgent()
 
 
@@ -15,18 +16,21 @@ def collect_data_onliner():
     # нашли последнюю страницу
     tmp = response.json()
     last = tmp.get('page').get('last')
-    tmp_date = []
+    total = int(tmp.get('total'))
+
+
+
 
     count = 0
-    data_hata = []
+    data_onliner = []
     for item in range(1, int(last) + 1):
+
         url = f'https://r.onliner.by/sdapi/ak.api/search/apartments?rent_type[]=1_room&rent_type[]=2_rooms&rent_type[]=3_rooms&rent_type[]=4_rooms&rent_type[]=5_rooms&rent_type[]=6_rooms&only_owner=true&page={item}'
         response = requests.get(
             url=url,
             headers={'user-agent': f'{ua.random}'})
 
         data = response.json()
-        tmp_date.append(data)
         items = data.get('apartments')
 
         for i in items:
@@ -52,17 +56,13 @@ def collect_data_onliner():
             soup = BeautifulSoup(soup_tel, "html.parser")
             try:
                 phone = soup.find('div', id='apartment-phones').find('a').text
-
             except AttributeError:
                 response_tel = requests.get(url=items_url, headers={'user-agent': f'{ua.random}'})
                 soup_tel = response_tel.text
                 soup = BeautifulSoup(soup_tel, "html.parser")
                 phone = soup.find('div', id='apartment-phones').find('a').text
-            print(items_url)
-            print(phone)
 
-            data_hata.append({
-                    'num': count,
+            data_onliner.append({
                     'id': items_id,
                     'price': items_price_usd,
                     'location': items_location,
@@ -73,13 +73,12 @@ def collect_data_onliner():
                     'log': items_log,
                     'created_at': items_created_at,
                     'last_time_up': items_last_time_up})
-            print(len(data_hata))
+            print(f'Sparsily {len(data_onliner)} out of {total}')
 
     with open('result.json', 'w', encoding='utf-8') as file:
-        json.dump(data_hata, file, indent=4, ensure_ascii=False)
+        json.dump(data_onliner, file, indent=4, ensure_ascii=False)
 
-    with open('tmp.json', 'w', encoding='utf-8') as file:
-        json.dump(tmp_date, file, indent=4, ensure_ascii=False)
+
 
 
 # def collect_data_kufar():
@@ -139,6 +138,7 @@ def collect_data_onliner():
 
 def main():
     collect_data_onliner()
+
 
 
 
