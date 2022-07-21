@@ -86,25 +86,25 @@ def collect_data_kufar():
     response = requests.get(
         url='https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD&gbx=b%3A20.561200890624985%2C51.41464455654549%2C34.865400109374974%2C55.45222546814571&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
         headers={'user-agent': f'{ua.random}'}).json()
-    # нашли последнюю страницу
 
     total_apartments = response.get('total')
     total_page = math.ceil(total_apartments/200)
-    fing_next_page = response.get('pagination').get('pages')
-    for i in fing_next_page:
-        if i['label'] == "next":
-            page = i['token']
-
-
-    print(total_page)
-
-
-
+    def search_next_page(response):
+        search_next_page = response.get('pagination').get('pages')
+        for i in search_next_page:
+            if i['label'] == "next":
+                page = i['token']
+                return '&cursor=' + page
     date_kufar = []
+    page = []
     for i in range(1, total_page+1):
+
         response = requests.get(
-            url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD&cursor={page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
+            url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD{page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
             headers={'user-agent': f'{ua.random}'}).json()
+
+        page = search_next_page(response)
+
         items = response.get('ads')
         for i in items:
             item_id = i.get('ad_id')
