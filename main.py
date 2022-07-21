@@ -3,7 +3,7 @@ import requests
 import json
 from bs4 import BeautifulSoup
 import math
-import base64
+
 
 
 
@@ -90,10 +90,11 @@ def collect_data_kufar():
 
     total_apartments = response.get('total')
     total_page = math.ceil(total_apartments/200)
-    decoded_page = '{"t":"abs","f":true,"p":1}'
-    b = decoded_page.encode("UTF-8")
-    e = base64.b64encode(b)
-    encoded_page = e.decode("UTF-8")
+    fing_next_page = response.get('pagination').get('pages')
+    for i in fing_next_page:
+        if i['label'] == "next":
+            page = i['token']
+
 
     print(total_page)
 
@@ -102,21 +103,42 @@ def collect_data_kufar():
     date_kufar = []
     for i in range(1, total_page+1):
         response = requests.get(
-            url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD&cursor={encoded_page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
+            url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD&cursor={page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
             headers={'user-agent': f'{ua.random}'}).json()
-        date_kufar.append(response)
-        temp = list(decoded_page)
-        temp[-2] = str(i)
-        decoded_page = "".join(temp)
-        print(decoded_page)
-    print(len(date_kufar))
+        items = response.get('ads')
+        for i in items:
+            item_id = i.get('ad_id')
+            items_price_usd = int(i.get('price_usd'))/100
+            item_location = i.get('account_parameters')[1].get('v')
+            # item_lat = i.get('ad_parameters')[0].get('v')
+            # item_log
+            item_rooms = i.get('ad_parameters')[6].get('v')
+            item_url = i.get('ad_link')
+            item_last_time_up = i.get('list_time')
+
+            response_phone = requests.get(
+                url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{item_id}/phone',
+                headers={'user-agent': f'{ua.random}'}).json()
+            item_phone = response_phone.get('phone')
+
+            date_kufar.append({
+                'id': item_id,
+                'price': items_price_usd,
+                'location': item_location,
+                'rooms': item_rooms,
+                'ulr': item_url,
+                'phone': item_phone,
+                'last_time_up': item_last_time_up
+            })
+            print(f'Sparsily {len(date_kufar)} out of {total_apartments}')
 
 
 
 
 
 
-    with open('tmp.json', 'w',encoding='utf-8') as file:
+
+    with open('result_kufar.json', 'w',encoding='utf-8') as file:
         json.dump(date_kufar, file, indent=4, ensure_ascii=False)
 
 
