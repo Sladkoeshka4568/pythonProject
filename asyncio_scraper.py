@@ -6,8 +6,10 @@ import json
 import requests
 
 
-ua = UserAgent()
+# https://lolz.guru/threads/3008577/
 
+ua = UserAgent()
+data = []
 
 
 def collect_data_kufar():
@@ -45,14 +47,7 @@ def collect_data_kufar():
             # !!!!!!! переписать, ошибки по колличеству комнат
             item_url = i.get('ad_link')
             item_last_time_up = i.get('list_time')
-
-            # response_phone = requests.get(
-            #     url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{item_id}/phone',
-            #     headers={'user-agent': f'{ua.random}'}).json()
-            # item_phone = response_phone.get('phone')
-            date_id.append({
-                'id': item_id
-            })
+            date_id.append(item_id)
             date_kufar.append({
                 'id': item_id,
                 'price': items_price_usd,
@@ -62,33 +57,63 @@ def collect_data_kufar():
                 # 'phone': item_phone,
                 'last_time_up': item_last_time_up
             })
-            print(f'Sparsily {len(date_kufar)} out of {total_apartments}')
 
     with open('result_kufar.json', 'w',encoding='utf-8') as file:
         json.dump(date_kufar, file, indent=4, ensure_ascii=False)
     return date_id
 
 
-
-
-
-
-
 async def main():
     async with aiohttp.ClientSession() as session:
         headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'user-agent': f'{ua.random}'
+            'user-agent': f'{ua.random}',
         }
-        app_id = collect_data_kufar()
-        tasks = []  # Создаем массив, куда будем помещать задания
-        for i in app_id:
-            tasks.append(parsing_page(session,
-                                        f'https://lolz.guru/articles/{nextpageurl}{i}'))  # Передаем в другую функцию сессию, а так же ссылку на парсинг
+    tasks = []
+    for i in collect_data_kufar():
+        tasks.append(parsing_page(session, i))
+    await asyncio.gather(*tasks)
+    write_json(data)
 
-        asyncio.gather(*tasks)  # Выполняем то, что находится в массиве
+async def parsing_page(session, id):
+    headers = {
+        'User-Agent': f'{ua.random}',
+        'Accept': '*/*',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+        # 'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://re.kufar.by/',
+        'Content-type': 'application/json',
+        'Authorization': 'undefined',
+        'X-App-Name': 'Web Kufar',
+        'Origin': 'https://re.kufar.by',
+        'Connection': 'keep-alive',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        # Requests doesn't support trailers
+        # 'TE': 'trailers',
+    }
+
+    response = requests.get(
+        f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{id}/phone',
+        headers=headers).json()
+    phone = response.get('phone')
+    data.append({
+        'id': phone
+    })
+
+
+def write_json(data):
+    with open('result_kufar_phone.json', 'w', encoding='utf-8') as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
+
 
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())
+
+
+
+
+
 
