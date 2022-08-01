@@ -6,7 +6,6 @@ import math
 
 
 
-
 ua = UserAgent()
 
 

@@ -4,6 +4,7 @@ from fake_useragent import UserAgent
 import math
 import json
 import requests
+from bs4 import BeautifulSoup
 
 
 # https://lolz.guru/threads/3008577/
@@ -63,54 +64,53 @@ def collect_data_kufar():
     return date_id
 
 
-async def main():
-    async with aiohttp.ClientSession() as session:
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'user-agent': f'{ua.random}',
-        }
-    tasks = []
-    for i in collect_data_kufar():
-        tasks.append(parsing_page(session, i))
-    await asyncio.gather(*tasks)
-    write_json(data)
 
-async def parsing_page(session, id):
+async def get_phone(session, phone_id):
     headers = {
-        'User-Agent': f'{ua.random}',
-        'Accept': '*/*',
-        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
-        # 'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://re.kufar.by/',
-        'Content-type': 'application/json',
-        'Authorization': 'undefined',
-        'X-App-Name': 'Web Kufar',
-        'Origin': 'https://re.kufar.by',
-        'Connection': 'keep-alive',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-site',
-        # Requests doesn't support trailers
-        # 'TE': 'trailers',
+        'User-Agent': f'{ua.random}'
+        }
+    proxies = {
+        'https': 'http://178.254.24.12:3128'
     }
+        # 'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+        # # 'Accept-Encoding': 'gzip, deflate, br',
+        # 'Connection': 'keep-alive',
+        # # Requests sorts cookies= alphabetically
+        # # 'Cookie': 'lang=ru; kuf_VCH_promo_vas=2; kuf-searchbar-only-title=1; web_push_banner_listings=3; _ga=GA1.2.842914772.1659097777; _pulse2data=0a2d752f-e516-4b9f-bfe7-048b4947879f%2Cv%2C%2C1659103399622%2CeyJpc3N1ZWRBdCI6IjIwMjItMDctMjlUMTI6Mjk6MzVaIiwiZW5jIjoiQTEyOENCQy1IUzI1NiIsImFsZyI6ImRpciIsImtpZCI6IjIifQ..z5F_oNJ_TEE3MmacuRiaXA.2B352U4kC7CDnebQFnIohM1H09N1t7VsUvWFGT0fncXNfKTMe_ArziH0B2Mzavlas8jFwOrJrZZSHTf8BG_oAQSaITj5uSNcCTZ_tJ2jy8E_9sJRg00-2Fuzh4UvFhJal67iziB5ceJQ-g7KRLrPAFPJYBq82gmB2d6HQTV1a1oFhnihghGZJKc0gE89xMLViQkxK0DyYc3uoE-h6zB22Q.xJADWal_IwyozBCu3lQL5g%2C0%2C1659116899622%2Ctrue%2C%2CeyJraWQiOiIyIiwiYWxnIjoiSFMyNTYifQ..1ilt8kc4cWoT6SCJYaZebV_NU1ZMidQ2tdnmK1KWbv4; kuf_agr={%22advertisements%22:true%2C%22statistic%22:true%2C%22mindbox%22:true}; fullscreen_cookie=1; kuf_SA_vas_adv_game_2022_popup=1; _gcl_au=1.1.1859754093.1659097780; _ga_QTFZM0D0BE=GS1.1.1659097779.1.0.1659097781.58; tmr_reqNum=16; tmr_lvid=d424eccb1ab1ed30aeed5a43123f531c; tmr_lvidTS=1659097780524; _tt_enable_cookie=1; _ttp=e9eeea42-0bcf-49ee-8aed-f6c1d2a89b2b; web_push_banner_realty=3; _ga_SW9X2V65F0=GS1.1.1659102501.2.1.1659102984.0; _ym_uid=16590977841073363313; _ym_d=1659097784; mindboxDeviceUUID=fe678108-b60c-4c06-8201-68bb6deee9a5; directCrm-session=%7B%22deviceGuid%22%3A%22fe678108-b60c-4c06-8201-68bb6deee9a5%22%7D; _hjSessionUser_1751529=eyJpZCI6IjIwM2FjMzY2LWFlMTItNTZmNS04ZTQxLWEwYjdmMmY0MTgzZSIsImNyZWF0ZWQiOjE2NTkwOTc3ODQzMDIsImV4aXN0aW5nIjp0cnVlfQ==; default_ya=240; default_ca=7; kuf_SA_subscribe_user_attention=1',
+        # 'Upgrade-Insecure-Requests': '1',
+        # 'Sec-Fetch-Dest': 'document',
+        # 'Sec-Fetch-Mode': 'navigate',
+        # 'Sec-Fetch-Site': 'none',
+        # 'Sec-Fetch-User': '?1',
+        # # Requests doesn't support trailers
+        # # 'TE': 'trailers',
+    # }
 
-    response = requests.get(
-        f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{id}/phone',
-        headers=headers).json()
-    phone = response.get('phone')
-    data.append({
-        'id': phone
-    })
+    url = f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{phone_id}/phone'
+    async with session.get(url=url, headers=headers, proxies=proxies) as response:
+        response_text = await response.text()
+        print(response_text)
+        data.append({phone_id: response_text})
 
 
-def write_json(data):
-    with open('result_kufar_phone.json', 'w', encoding='utf-8') as file:
+async def task_list():
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for phone_id in collect_data_kufar():
+            task = asyncio.create_task(get_phone(session, phone_id))
+            tasks.append(task)
+        await asyncio.gather(*tasks)
+
+
+def main():
+    asyncio.run(task_list())
+
+    with open('resulr_kufar_phone.json', "w") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
 
 
 if __name__ == '__main__':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main())
+    main()
 
 
 
