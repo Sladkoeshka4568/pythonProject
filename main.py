@@ -17,22 +17,15 @@ def collect_data_onliner():
     tmp = response.json()
     last = tmp.get('page').get('last')
     total = int(tmp.get('total'))
-
-
-
-
     count = 0
     data_onliner = []
     for item in range(1, int(last) + 1):
-
         url = f'https://r.onliner.by/sdapi/ak.api/search/apartments?rent_type[]=1_room&rent_type[]=2_rooms&rent_type[]=3_rooms&rent_type[]=4_rooms&rent_type[]=5_rooms&rent_type[]=6_rooms&only_owner=true&page={item}'
         response = requests.get(
             url=url,
             headers={'user-agent': f'{ua.random}'})
-
         data = response.json()
         items = data.get('apartments')
-
         for i in items:
             count += 1
             items_id = i.get('id')
@@ -75,7 +68,7 @@ def collect_data_onliner():
                     'last_time_up': items_last_time_up})
             print(f'Sparsily {len(data_onliner)} out of {total}')
 
-    with open('result.json', 'w', encoding='utf-8') as file:
+    with open('result_onliner.json', 'w', encoding='utf-8') as file:
         json.dump(data_onliner, file, indent=4, ensure_ascii=False)
 
 
@@ -97,7 +90,6 @@ def collect_data_kufar():
     date_kufar = []
     page = []
     for i in range(1, total_page+1):
-
         response = requests.get(
             url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD{page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
             headers={'user-agent': f'{ua.random}'}).json()
@@ -131,19 +123,13 @@ def collect_data_kufar():
             })
             print(f'Sparsily {len(date_kufar)} out of {total_apartments}')
 
-
-
-
-
-
-
-    with open('result_kufar.json', 'w',encoding='utf-8') as file:
+    with open('result_kufar.json', 'w', encoding='utf-8') as file:
         json.dump(date_kufar, file, indent=4, ensure_ascii=False)
 
 
 
 def main():
-    # collect_data_onliner()
+    collect_data_onliner()
     collect_data_kufar()
 
 

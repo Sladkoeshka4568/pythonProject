@@ -69,9 +69,6 @@ async def get_phone(session, phone_id):
     headers = {
         'User-Agent': f'{ua.random}'
         }
-    proxies = {
-        'https': 'http://178.254.24.12:3128'
-    }
         # 'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
         # # 'Accept-Encoding': 'gzip, deflate, br',
         # 'Connection': 'keep-alive',
@@ -87,9 +84,8 @@ async def get_phone(session, phone_id):
     # }
 
     url = f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{phone_id}/phone'
-    async with session.get(url=url, headers=headers, proxies=proxies) as response:
+    async with session.get(url=url, headers=headers) as response:
         response_text = await response.text()
-        print(response_text)
         data.append({phone_id: response_text})
 
 
