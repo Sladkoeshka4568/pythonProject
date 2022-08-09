@@ -1,5 +1,5 @@
 import time
-
+from multiprocessing import Process
 from fake_useragent import UserAgent
 import requests
 import json
@@ -9,7 +9,8 @@ import math
 
 
 ua = UserAgent()
-
+today = time.time()
+dt = time.strftime('%Y-%m-%d_%H.%M', time.localtime(today))
 
 def collect_data_onliner():
     response = requests.get(
@@ -68,9 +69,9 @@ def collect_data_onliner():
                     'log': items_log,
                     'created_at': items_created_at,
                     'last_time_up': items_last_time_up})
-            print(f'Sparsily {len(data_onliner)} out of {total}')
+            print(f'Sparsily onliner{len(data_onliner)} out of {total}')
 
-    with open('result_onliner.json', 'w', encoding='utf-8') as file:
+    with open(f'onliner{dt}.json', 'w', encoding='utf-8') as file:
         json.dump(data_onliner, file, indent=4, ensure_ascii=False)
 
 
@@ -78,12 +79,11 @@ def collect_data_onliner():
 
 def collect_data_kufar():
     response = requests.get(
-        url='https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=30&typ=let',
+        url='https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
         headers={'user-agent': f'{ua.random}'}).json()
 
     total_apartments = response.get('total')
-    total_page = math.ceil(total_apartments/30)
-    print(total_page)
+    total_page = math.ceil(total_apartments/200)
     def search_next_page(response):
         search_next_page = response.get('pagination').get('pages')
         for i in search_next_page:
@@ -94,9 +94,8 @@ def collect_data_kufar():
     page = None
     for _ in range(total_page):
         response = requests.get(
-            url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD{page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=30&typ=let',
+            url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD{page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=200&typ=let',
             headers={'user-agent': f'{ua.random}'}).json()
-        print(f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/search/rendered-paginated?cat=1010&cmp=0&cur=USD{page}&gbx=b%3A20.39785989062499%2C51.627623704913894%2C34.70205910937501%2C55.64576960781322&gtsy=country-belarus&lang=ru&rnt=1&size=30&typ=let')
         page = search_next_page(response)
         count = 0
         items = response.get('ads')
@@ -113,10 +112,10 @@ def collect_data_kufar():
             item_url = i.get('ad_link')
             item_last_time_up = i.get('list_time')
 
-            # response_phone = requests.get(
-            #     url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{item_id}/phone',
-            #     headers={'user-agent': f'{ua.random}'}).json()
-            # item_phone = response_phone.get('phone')
+            response_phone = requests.get(
+                url=f'https://cre-api-v2.kufar.by/items-search/v1/engine/v1/item/{item_id}/phone',
+                headers={'user-agent': f'{ua.random}'}).json()
+            item_phone = response_phone.get('phone')
 
             date_kufar.append({
                 'id': item_id,
@@ -124,24 +123,29 @@ def collect_data_kufar():
                 'location': item_location,
                 'rooms': item_rooms,
                 'ulr': item_url,
-                # 'phone': item_phone,
+                'phone': item_phone,
                 'lat': item_lat,
                 'log': item_log,
                 'last_time_up': item_last_time_up
             })
-            # print(f'Sparsily {len(date_kufar)} out of {total_apartments}')
-            # count += 1
-            # if count % 50 == 0:
-            #     time.sleep(5)
+            print(f'Sparsily kufar {len(date_kufar)} out of {total_apartments}')
+            count += 1
+            if count % 50 == 0:
+                time.sleep(3)
+            if len(date_kufar) == total_apartments:
+                break
 
-    with open('result_kufar.json', 'w', encoding='utf-8') as file:
+    with open(f'kufar{dt}.json', 'w', encoding='utf-8') as file:
         json.dump(date_kufar, file, indent=4, ensure_ascii=False)
 
 
 
 def main():
-    # collect_data_onliner()
-    collect_data_kufar()
+    p1 = Process(target=collect_data_onliner)
+    p1.start()
+    p2 = Process(target=collect_data_kufar)
+    p2.start()
+
 
 
 
