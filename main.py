@@ -53,6 +53,7 @@ def collect_data_onliner():
             try:
                 phone = soup.find('div', id='apartment-phones').find('a').text
             except AttributeError:
+                time.sleep(3)
                 response_tel = requests.get(url=items_url, headers={'user-agent': f'{ua.random}'})
                 soup_tel = response_tel.text
                 soup = BeautifulSoup(soup_tel, "html.parser")
@@ -69,7 +70,7 @@ def collect_data_onliner():
                     'log': items_log,
                     'created_at': items_created_at,
                     'last_time_up': items_last_time_up})
-            print(f'Sparsily onliner{len(data_onliner)} out of {total}')
+            print(f'Sparsily onliner {len(data_onliner)} out of {total}')
 
     with open(f'onliner{dt}.json', 'w', encoding='utf-8') as file:
         json.dump(data_onliner, file, indent=4, ensure_ascii=False)
